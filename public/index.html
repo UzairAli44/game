@@ -1,0 +1,2282 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لعبة فاميلي فيود</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap');
+        body {
+            font-family: 'Cairo', sans-serif;
+            min-height: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
+        }
+
+        .logo-glow {
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0%, 100% {
+                box-shadow: 0 0 30px rgba(251, 191, 36, 0.4), 0 0 60px rgba(245, 158, 11, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 50px rgba(251, 191, 36, 0.8), 0 0 100px rgba(245, 158, 11, 0.4);
+            }
+        }
+
+        .sparkle-animation {
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .elegant-text {
+            font-family: 'Amiri', serif;
+            background: linear-gradient(45deg, #ffffff, #fbbf24, #ffffff);
+            background-size: 200% 200%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: textShine 3s ease-in-out infinite;
+        }
+
+        @keyframes textShine {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .correct-answer { animation: correctPulse 0.4s ease-in-out; }
+        .wrong-answer { animation: wrongShake 0.4s ease-in-out; }
+        .reveal-animation { animation: revealAnswer 0.6s ease-out forwards; }
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); background-color: #10b981; }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wrongShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); background-color: #ef4444; }
+            75% { transform: translateX(5px); background-color: #ef4444; }
+        }
+
+        @keyframes revealAnswer {
+            0% {
+                opacity: 0;
+                background-color: rgba(255, 255, 255, 0.1);
+            }
+            100% {
+                opacity: 1;
+                background-color: rgba(34, 197, 94, 0.3);
+            }
+        }
+
+        .glow-button {
+            transition: all 0.2s ease;
+        }
+
+        .glow-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .wrong-x {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 120px;
+            color: #ef4444;
+            z-index: 1000;
+            pointer-events: none;
+            animation: wrongXAnimation 1s ease-out forwards;
+            text-shadow: 0 0 20px rgba(239, 68, 68, 0.8);
+        }
+
+        @keyframes wrongXAnimation {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+            20% {
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 1;
+            }
+            40% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            80% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .screen-flash {
+            animation: screenFlash 0.2s ease-out;
+        }
+
+        @keyframes screenFlash {
+            0% { background-color: rgba(239, 68, 68, 0); }
+            50% { background-color: rgba(239, 68, 68, 0.2); }
+            100% { background-color: rgba(239, 68, 68, 0); }
+        }
+
+        .wrong-particles {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: wrongParticleFloat 1s ease-out forwards;
+        }
+
+        @keyframes wrongParticleFloat {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-150px) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .simple-correct {
+            animation: simpleCorrect 0.6s ease-out;
+        }
+
+        .simple-wrong {
+            animation: simpleWrong 0.5s ease-out;
+        }
+
+        @keyframes simpleCorrect {
+            0% {
+                background-color: rgba(34, 197, 94, 0);
+                transform: scale(1);
+            }
+            50% {
+                background-color: rgba(34, 197, 94, 0.3);
+                transform: scale(1.02);
+            }
+            100% {
+                background-color: rgba(34, 197, 94, 0);
+                transform: scale(1);
+            }
+        }
+
+        @keyframes simpleWrong {
+            0% {
+                background-color: rgba(239, 68, 68, 0);
+                transform: translateX(0);
+            }
+            25% {
+                background-color: rgba(239, 68, 68, 0.3);
+                transform: translateX(-5px);
+            }
+            75% {
+                background-color: rgba(239, 68, 68, 0.3);
+                transform: translateX(5px);
+            }
+            100% {
+                background-color: rgba(239, 68, 68, 0);
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes successRipple {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(20);
+                opacity: 0;
+            }
+        }
+
+        @keyframes burstOut {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--burst-x), var(--burst-y)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        @keyframes disappointment {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); filter: brightness(0.7); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+
+        @keyframes celebration {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.1) rotate(-2deg); }
+            75% { transform: scale(1.1) rotate(2deg); }
+        }
+
+        @keyframes scoreIncrease {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); color: #fbbf24; }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes teamGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(59, 130, 246, 0.8); }
+        }
+
+        .team-celebration {
+            animation: celebration 0.6s ease-in-out;
+        }
+
+        .score-pop {
+            animation: scoreIncrease 0.5s ease-out;
+        }
+
+        .team-glow {
+            animation: teamGlow 1s ease-in-out infinite;
+        }
+
+        @keyframes magicalFloat {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: translate(calc(var(--magic-x) * 0.5), calc(var(--magic-y) * 0.5)) scale(1.2);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(var(--magic-x), var(--magic-y)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .correct-answer-reveal {
+            animation: correctAnswerReveal 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes correctAnswerReveal {
+            0% {
+                transform: scale(0.8) rotateY(-90deg);
+                opacity: 0;
+                background: linear-gradient(45deg, #10b981, #059669);
+                box-shadow: 0 0 0 rgba(16, 185, 129, 0);
+            }
+            30% {
+                transform: scale(1.1) rotateY(0deg);
+                opacity: 0.8;
+                box-shadow: 0 0 30px rgba(16, 185, 129, 0.6);
+            }
+            60% {
+                transform: scale(0.95) rotateY(0deg);
+                opacity: 1;
+                box-shadow: 0 0 40px rgba(16, 185, 129, 0.8);
+            }
+            100% {
+                transform: scale(1) rotateY(0deg);
+                opacity: 1;
+                background: rgba(34, 197, 94, 0.3);
+                box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+            }
+        }
+
+        .answer-glow {
+            animation: answerGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes answerGlow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(34, 197, 94, 0.8);
+            }
+        }
+
+        .success-burst {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .success-star {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(45deg, #fbbf24, #f59e0b);
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            animation: starBurst 1.5s ease-out forwards;
+        }
+
+        @keyframes starBurst {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.5) rotate(180deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(0) rotate(360deg) translate(var(--star-x), var(--star-y));
+                opacity: 0;
+            }
+        }
+
+        .firework {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .firework-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            animation: fireworkExplode 1.2s ease-out forwards;
+        }
+
+        @keyframes fireworkExplode {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(0) translate(var(--fx), var(--fy));
+                opacity: 0;
+            }
+        }
+
+        .smooth-transition {
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .bounce-smooth {
+            animation: bounceSmooth 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes bounceSmooth {
+            0% {
+                transform: scale(0.3) translateY(30px);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.05) translateY(-10px);
+                opacity: 0.8;
+            }
+            70% {
+                transform: scale(0.95) translateY(5px);
+                opacity: 0.9;
+            }
+            100% {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(59, 130, 246, 0.8);
+                transform: scale(1.02);
+            }
+        }
+
+        .slide-in-smooth {
+            animation: slideInSmooth 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        @keyframes slideInSmooth {
+            0% {
+                transform: translateX(-100px);
+                opacity: 0;
+            }
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .fade-in-smooth {
+            animation: fadeInSmooth 0.5s ease-out;
+        }
+
+        @keyframes fadeInSmooth {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .text-shadow-lg {
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-700 min-h-full">
+  <div id="codeScreen" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;">
+    <h2 style="color: white; font-size: 2rem; font-weight: bold; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">Enter Access Code</h2>
+    <input id="accessCode" placeholder="Enter your code" style="padding: 12px 20px; font-size: 1.2rem; border: 2px solid #fff; border-radius: 8px; margin-bottom: 20px; min-width: 300px; text-align: center; background: rgba(255,255,255,0.9);" />
+    <button onclick="verifyCode()" style="padding: 12px 30px; font-size: 1.2rem; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);" onmouseover="this.style.background='#2563eb'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='#3b82f6'; this.style.transform='scale(1)'">Start Game</button>
+    <p id="error" style="color:red; margin-top: 15px; font-size: 1rem; min-height: 24px;"></p>
+  </div>
+  <div id="game" style="display:none;">
+   <div class="w-full px-4 py-4"><!-- Header -->
+   <div class="text-center mb-8"><!-- Circular Purple Logo -->
+    <div class="relative inline-block mb-6"><!-- Main Logo Container - Circular Purple Style -->
+     <div class="relative bg-gradient-to-br from-purple-600 via-purple-700 to-purple-900 rounded-full shadow-2xl border-4 border-pink-400 overflow-hidden logo-glow" style="width: 180px; height: 180px;"><!-- Purple Background Pattern -->
+      <div class="absolute inset-0 bg-gradient-to-br from-purple-500/30 via-transparent to-purple-900/50 rounded-full"></div><!-- Circular Decorative Ring -->
+      <div class="absolute inset-3 border-2 border-pink-300/50 rounded-full"></div>
+      <div class="absolute inset-5 border border-purple-300/30 rounded-full"></div><!-- Main Text Container -->
+      <div class="flex flex-col items-center justify-center h-full relative z-10 px-3"><!-- FAMILY Text -->
+       <div class="text-center mb-1">
+        <div class="text-white font-black tracking-wider" style="font-family: 'Cairo', sans-serif; font-size: 1.5rem; text-shadow: 2px 2px 0px #7c3aed, 4px 4px 6px rgba(0,0,0,0.8); letter-spacing: 0.1em;">
+         فاميلي
+        </div>
+       </div><!-- FEUD Text -->
+       <div class="text-center">
+        <div class="text-pink-300 font-black tracking-wider" style="font-family: 'Cairo', sans-serif; font-size: 1.5rem; text-shadow: 2px 2px 0px #be185d, 4px 4px 6px rgba(0,0,0,0.8); letter-spacing: 0.1em;">
+         فيود
+        </div>
+       </div><!-- Circular Decorative Line -->
+       <div class="w-16 h-0.5 bg-gradient-to-r from-transparent via-pink-300 to-transparent mt-1 rounded-full"></div>
+      </div><!-- Circular Stars Around -->
+      <div class="absolute top-5 left-1/2 transform -translate-x-1/2 text-pink-300 text-sm sparkle-animation">
+       ⭐
+      </div>
+      <div class="absolute bottom-5 left-1/2 transform -translate-x-1/2 text-pink-300 text-sm sparkle-animation" style="animation-delay: 0.5s;">
+       ⭐
+      </div>
+      <div class="absolute left-5 top-1/2 transform -translate-y-1/2 text-pink-300 text-sm sparkle-animation" style="animation-delay: 1s;">
+       ⭐
+      </div>
+      <div class="absolute right-5 top-1/2 transform -translate-y-1/2 text-pink-300 text-sm sparkle-animation" style="animation-delay: 1.5s;">
+       ⭐
+      </div><!-- Corner Diagonal Stars -->
+      <div class="absolute top-7 left-7 text-purple-300 text-xs sparkle-animation" style="animation-delay: 2s;">
+       ✨
+      </div>
+      <div class="absolute top-7 right-7 text-purple-300 text-xs sparkle-animation" style="animation-delay: 2.5s;">
+       ✨
+      </div>
+      <div class="absolute bottom-7 left-7 text-purple-300 text-xs sparkle-animation" style="animation-delay: 3s;">
+       ✨
+      </div>
+      <div class="absolute bottom-7 right-7 text-purple-300 text-xs sparkle-animation" style="animation-delay: 3.5s;">
+       ✨
+      </div>
+     </div>
+    </div><!-- Game Progress -->
+    <div class="text-center mb-4">
+     <div class="bg-white/20 backdrop-blur-lg rounded-lg p-3 inline-block">
+      <p class="text-white text-base font-bold mb-1"><span id="currentRoundName" class="text-purple-300">الجولة الأولى</span></p>
+      <p class="text-white text-lg font-bold">السؤال <span id="currentQuestionNumber" class="text-yellow-400">1</span> من <span class="text-yellow-400">3</span></p>
+     </div>
+    </div><!-- Teams Display -->
+    <div class="flex justify-center gap-6 mb-6"><!-- Blue Team -->
+     <div class="bg-blue-500/20 border border-blue-400 rounded-lg p-3 min-w-[150px] shadow-md" id="blueTeam">
+      <h3 class="text-base font-bold text-blue-300 mb-1">🔵 الفريق الأزرق</h3>
+      <p class="text-white text-lg">النقاط: <span id="blueScore" class="font-bold text-blue-300 text-xl">0</span></p>
+     </div><!-- Red Team -->
+     <div class="bg-red-500/20 border border-red-400 rounded-lg p-3 min-w-[150px] shadow-md" id="redTeam">
+      <h3 class="text-base font-bold text-red-300 mb-1">🔴 الفريق الأحمر</h3>
+      <p class="text-white text-lg">النقاط: <span id="redScore" class="font-bold text-red-300 text-xl">0</span></p>
+     </div>
+    </div><!-- Current Turn & Mistakes -->
+    <div class="bg-white/20 rounded-lg p-3 inline-block shadow-md">
+     <p class="text-white text-base mb-1">دور: <span id="currentTurn" class="font-bold text-blue-300">الفريق الأزرق</span></p>
+     <p class="text-white text-sm">الأخطاء: <span id="mistakes" class="font-bold text-red-400">0 من 3</span> ❌</p>
+    </div>
+   </div><!-- Game Board -->
+   <div class="w-full"><!-- Question -->
+    <div class="bg-white/15 border border-white/30 rounded-lg shadow-lg p-4 mb-4">
+     <div class="flex items-center justify-center gap-3 mb-4">
+      <h2 class="text-lg lg:text-xl font-bold text-white text-center flex-1" id="question">أول شي تسويه لما تصحى من النوم؟</h2>
+      <div class="bg-yellow-500/20 border border-yellow-400 rounded-lg p-2 min-w-[70px] text-center">
+       <p class="text-yellow-300 text-xs font-bold mb-1">النقاط</p>
+       <p class="text-white text-base font-bold" id="questionPoints">100</p>
+      </div>
+     </div><!-- Answer Input -->
+     <div class="flex gap-3 mb-4"><input type="text" id="answerInput" placeholder="اكتب إجابتك هنا..." class="flex-1 px-3 py-2 text-base border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none shadow-md"> <button onclick="submitAnswer()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-bold text-base transition-all duration-300 glow-button shadow-md"> إرسال </button>
+     </div><!-- Result Message -->
+     <div id="resultMessage" class="text-center text-base font-bold mb-2 h-6"></div>
+    </div><!-- Answers Board -->
+    <div class="bg-white/15 border border-white/30 rounded-lg shadow-lg p-4">
+     <h3 class="text-lg lg:text-xl font-bold text-white text-center mb-4">الإجابات المكتشفة</h3>
+     <div class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3" id="answersGrid"><!-- Answers will be populated here -->
+     </div><!-- Control Buttons -->
+     <div class="flex flex-wrap justify-center gap-3 mt-4"><button onclick="previousQuestion()" id="prevBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-bold text-base transition-all duration-300 opacity-50 cursor-not-allowed transform hover:scale-105 shadow-md" disabled> السؤال السابق </button> <button onclick="revealAllAnswers()" id="revealBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-bold text-base transition-all duration-300 transform hover:scale-105 hover:shadow-xl"> 🔍 كشف جميع الإجابات </button> <button onclick="nextQuestion()" id="nextBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold text-base transition-all duration-300 transform hover:scale-105 shadow-md"> السؤال التالي </button>
+     </div><!-- Restart Button -->
+     <div class="flex justify-center mt-3"><button onclick="restartGame()" class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-bold text-base transition-all duration-300 transform hover:scale-105 shadow-md"> 🔄 إعادة تشغيل </button>
+     </div>
+    </div>
+   </div>
+  </div>
+  </div><!-- End of game div -->
+  <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+          apiKey: "AIzaSyBItv5ocVHvha7rAFEdECT1q1L_gMY-798",
+          authDomain: "game-access-system.firebaseapp.com",
+          projectId: "game-access-system"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+  </script>
+  <script>
+        const rounds = [
+            {
+                name: "الجولة الأولى",
+                questions: [
+                    {
+                        question: "أول شي تسويه لما تصحى من النوم؟",
+                        answers: ["تفتح عيونك", "تمسك الجوال", "تطفي المنبه", "تروح الحمام", "تغسل وجهك / تفرش أسنانك", "تصلي"],
+                        points: [25, 22, 20, 15, 10, 8]
+                    },
+                    {
+                        question: "شي تتمنى يعطيك إياه مديرك؟",
+                        answers: ["زيادة راتب", "ترقية", "إجازة", "مكافأة", "ساعات عمل أقل", ""],
+                        points: [30, 25, 20, 15, 10, 0]
+                    },
+                    {
+                        question: "مكان تطفش وانت تنتظر فيه؟",
+                        answers: ["المستشفى", "المطار", "البنك", "مطعم", "حلاق", ""],
+                        points: [30, 25, 20, 15, 10, 0]
+                    }
+                ]
+            },
+            {
+                name: "الجولة الثانية",
+                questions: [
+                    {
+                        question: "شي تسويه في الطيارة؟",
+                        answers: ["تنام", "تتابع فلم (مسلسل)", "تدور نت", "تطلب أكل", "تلعب لعبة", ""],
+                        points: [30, 25, 20, 15, 10, 0]
+                    },
+                    {
+                        question: "أكثر شي تخاف إنه يضيع منك وانت مسافر؟",
+                        answers: ["الجواز", "التذكرة", "الفلوس", "الجوال", "الشنطة", "بطاقة الهوية"],
+                        points: [30, 25, 20, 15, 10, 8]
+                    },
+                    {
+                        question: "لو انقطعت الكهربا وش أول شي تسويه؟",
+                        answers: ["تدور على شمعة", "تطلع برا", "تكلم شركة الكهرباء", "تروح تنام", "تلعب بالجوال لين يفتح", ""],
+                        points: [25, 22, 20, 15, 10, 0]
+                    }
+                ]
+            },
+            {
+                name: "الجولة الثالثة",
+                questions: [
+                    {
+                        question: "شي دايماً تدور عليه في البيت؟",
+                        answers: ["الريموت", "المفاتيح", "الشاحن", "الجوال", "البطاقة", ""],
+                        points: [30, 25, 20, 15, 10, 0]
+                    },
+                    {
+                        question: "شيء يخليك تتأخر عن الشغل؟",
+                        answers: ["الزحمة", "النوم", "المنبه ما رن", "الفطور", "السيارة", ""],
+                        points: [30, 25, 20, 15, 10, 0]
+                    },
+                    {
+                        question: "مكان الناس يتكلمون بصوت واطي؟",
+                        answers: ["المكتبة", "المسجد", "السينما", "المستشفى", "المحكمة", ""],
+                        points: [25, 22, 20, 18, 15, 0]
+                    }
+                ]
+            }
+        ];
+
+        // Flatten questions for backward compatibility
+        const questions = rounds.flatMap(round => round.questions);
+
+        let currentQuestionIndex = 0;
+        let currentRoundIndex = 0;
+        let questionInRound = 0;
+        let blueScore = 0;
+        let redScore = 0;
+        let foundAnswers = [];
+        let currentTeam = 'blue'; // 'blue' or 'red'
+        let mistakes = 0;
+        let maxMistakes = 3;
+        let gamePhase = 'initial'; // 'initial', 'playing', 'switched'
+        let initialAnswers = { blue: null, red: null };
+        let playingTeam = null; // Team that was selected to continue
+        let switchedToTeam = null; // Team that got the question after 3 mistakes
+        let questionSwitched = false; // Whether question was switched due to 3 mistakes
+        let gameState = 'playing'; // 'playing', 'roundEnd', 'gameEnd'
+
+        function initializeGame() {
+            displayQuestion();
+            createAnswersGrid();
+            document.getElementById('answerInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    submitAnswer();
+                }
+            });
+        }
+
+        function displayQuestion() {
+            const currentQuestion = questions[currentQuestionIndex];
+            const questionElement = document.getElementById('question');
+            const questionPointsElement = document.getElementById('questionPoints');
+
+            // Update round and question info
+            const currentRoundNameElement = document.getElementById('currentRoundName');
+            const questionNumberElement = document.getElementById('currentQuestionNumber');
+
+            currentRoundNameElement.textContent = rounds[currentRoundIndex].name;
+            currentRoundNameElement.classList.add('bounce-smooth');
+            questionNumberElement.classList.add('bounce-smooth');
+            questionNumberElement.textContent = questionInRound + 1;
+
+            // Calculate total points for this question
+            const totalPoints = currentQuestion.points.reduce((sum, points) => sum + points, 0);
+
+            // Add smooth transition animation
+            questionElement.classList.add('fade-in-smooth');
+            questionElement.style.opacity = '0';
+            questionElement.style.transform = 'translateY(-20px)';
+            questionPointsElement.style.opacity = '0';
+
+            setTimeout(() => {
+                questionElement.textContent = currentQuestion.question;
+                questionPointsElement.textContent = totalPoints;
+                questionElement.style.opacity = '1';
+                questionElement.style.transform = 'translateY(0)';
+                questionElement.style.transition = 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                questionPointsElement.style.opacity = '1';
+                questionPointsElement.style.transition = 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                questionElement.classList.add('slide-in-smooth');
+                questionPointsElement.classList.add('bounce-smooth');
+            }, 100);
+
+            foundAnswers = [];
+            mistakes = 0;
+            currentTeam = 'blue';
+            gamePhase = 'initial'; // Reset to initial phase
+            initialAnswers = { blue: null, red: null }; // Reset initial answers
+            playingTeam = null;
+            switchedToTeam = null;
+            questionSwitched = false;
+            updateAnswersGrid();
+            updateTeamDisplay();
+
+            // Update button states with animations
+            const nextBtn = document.getElementById('nextBtn');
+            const prevBtn = document.getElementById('prevBtn');
+
+            // Check if this is the last question in the game
+            if (currentRoundIndex >= rounds.length - 1 && questionInRound >= 2) {
+                nextBtn.textContent = 'إنهاء اللعبة';
+                nextBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                nextBtn.classList.add('bg-purple-500', 'hover:bg-purple-600');
+            } else {
+                nextBtn.textContent = 'السؤال التالي';
+                nextBtn.classList.remove('bg-purple-500', 'hover:bg-purple-600', 'bg-orange-500', 'hover:bg-orange-600');
+                nextBtn.classList.add('bg-green-500', 'hover:bg-green-600');
+            }
+
+            nextBtn.disabled = false;
+            nextBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            nextBtn.classList.add('bounce-in');
+
+            // Previous button state
+            if (currentQuestionIndex === 0) {
+                prevBtn.disabled = true;
+                prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else {
+                prevBtn.disabled = false;
+                prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                prevBtn.classList.add('slide-up');
+            }
+
+            document.getElementById('resultMessage').textContent = '';
+
+            // Reset reveal button
+            const revealBtn = document.getElementById('revealBtn');
+            revealBtn.disabled = false;
+            revealBtn.textContent = '🔍 كشف جميع الإجابات';
+            revealBtn.classList.remove('animate-pulse');
+        }
+
+        function updateTeamDisplay() {
+            const blueTeamElement = document.getElementById('blueTeam');
+            const redTeamElement = document.getElementById('redTeam');
+            const currentTurnElement = document.getElementById('currentTurn');
+            const mistakesElement = document.getElementById('mistakes');
+
+            // Update scores
+            document.getElementById('blueScore').textContent = blueScore;
+            document.getElementById('redScore').textContent = redScore;
+
+            if (gamePhase === 'initial') {
+                // Initial phase - show status of both teams
+                if (!initialAnswers.blue && !initialAnswers.red) {
+                    currentTurnElement.textContent = 'أعطِ إجابة واحدة أو إجابتين لتحديد من يكمل';
+                    currentTurnElement.className = 'font-bold text-white';
+                    blueTeamElement.classList.remove('ring-4', 'ring-blue-400', 'ring-opacity-50');
+                    redTeamElement.classList.remove('ring-4', 'ring-red-400', 'ring-opacity-50');
+                } else if (initialAnswers.blue && !initialAnswers.red) {
+                    // Check if first answer got the top answer
+                    const currentQuestion = questions[currentQuestionIndex];
+                    const isFirstTopAnswer = initialAnswers.blue.isCorrect && currentQuestion.answers[0] === initialAnswers.blue.answer;
+
+                    if (isFirstTopAnswer) {
+                        currentTurnElement.textContent = 'الإجابة الأولى هي الأعلى نقاطاً!';
+                        currentTurnElement.className = 'font-bold text-green-300';
+                        blueTeamElement.classList.remove('ring-4', 'ring-blue-400', 'ring-opacity-50');
+                        redTeamElement.classList.remove('ring-4', 'ring-red-400', 'ring-opacity-50');
+                    } else {
+                        currentTurnElement.textContent = 'أعطِ الإجابة الثانية';
+                        currentTurnElement.className = 'font-bold text-white';
+                        blueTeamElement.classList.remove('ring-4', 'ring-blue-400', 'ring-opacity-50');
+                        redTeamElement.classList.remove('ring-4', 'ring-red-400', 'ring-opacity-50');
+                    }
+                }
+                mistakesElement.textContent = 'مرحلة البداية';
+            } else if (gamePhase === 'switched') {
+                // Switched phase - show special status
+                const switchedTeamName = switchedToTeam === 'blue' ? 'الأزرق' : 'الأحمر';
+                currentTurnElement.textContent = `الفريق ${switchedTeamName} (فرصة واحدة)`;
+                currentTurnElement.className = `font-bold ${switchedToTeam === 'blue' ? 'text-blue-300' : 'text-red-300'}`;
+
+                if (switchedToTeam === 'blue') {
+                    blueTeamElement.classList.add('ring-4', 'ring-blue-400', 'ring-opacity-50');
+                    redTeamElement.classList.remove('ring-4', 'ring-red-400', 'ring-opacity-50');
+                } else {
+                    redTeamElement.classList.add('ring-4', 'ring-red-400', 'ring-opacity-50');
+                    blueTeamElement.classList.remove('ring-4', 'ring-blue-400', 'ring-opacity-50');
+                }
+                mistakesElement.textContent = 'فرصة واحدة فقط!';
+            } else {
+                // Playing phase - normal display
+                if (currentTeam === 'blue') {
+                    currentTurnElement.textContent = 'الفريق الأزرق';
+                    currentTurnElement.className = 'font-bold text-blue-300';
+                    blueTeamElement.classList.add('ring-4', 'ring-blue-400', 'ring-opacity-50');
+                    redTeamElement.classList.remove('ring-4', 'ring-red-400', 'ring-opacity-50');
+                } else {
+                    currentTurnElement.textContent = 'الفريق الأحمر';
+                    currentTurnElement.className = 'font-bold text-red-300';
+                    redTeamElement.classList.add('ring-4', 'ring-red-400', 'ring-opacity-50');
+                    blueTeamElement.classList.remove('ring-4', 'ring-blue-400', 'ring-opacity-50');
+                }
+                mistakesElement.textContent = `${mistakes} من ${maxMistakes}`;
+            }
+        }
+
+        function getAnswerPoints(answer) {
+            const currentQuestion = questions[currentQuestionIndex];
+            const index = currentQuestion.answers.indexOf(answer);
+            return currentQuestion.points[index] || 0;
+        }
+
+        function findMatchingAnswer(userAnswer, correctAnswers) {
+            const userLower = userAnswer.toLowerCase().trim();
+
+            // Minimum length check - must be at least 2 characters
+            if (userLower.length < 2) {
+                return null;
+            }
+
+            // Check each correct answer for matches
+            for (const correctAnswer of correctAnswers) {
+                if (correctAnswer === "") continue;
+
+                const correctLower = correctAnswer.toLowerCase();
+
+                // 1. Exact match (case insensitive)
+                if (correctLower === userLower) {
+                    return correctAnswer;
+                }
+
+                // 2. Check for key concepts and synonyms
+                if (containsKeyConceptsOrSynonyms(userLower, correctLower)) {
+                    return correctAnswer;
+                }
+
+                // 3. Check if user answer is contained in correct answer
+                if (correctLower.includes(userLower) && userLower.length >= 3) {
+                    return correctAnswer;
+                }
+
+                // 4. Check if correct answer key words are in user answer
+                if (correctAnswerKeyWordsInUser(userLower, correctLower)) {
+                    return correctAnswer;
+                }
+            }
+
+            return null;
+        }
+
+        function containsKeyConceptsOrSynonyms(userAnswer, correctAnswer) {
+            // Define key concepts and their variations - more strict matching
+            const conceptMappings = {
+                // Phone/mobile concepts - require both action and object
+                "تمسك الجوال": {
+                    requiredCombination: [
+                        ["امسك", "مسك", "تمسك"], // action words
+                        ["جوال", "موبايل", "تلفون", "هاتف"] // object words
+                    ],
+                    exactSynonyms: ["امسك الجوال", "مسك الجوال", "امسك الموبايل", "مسك الموبايل", "امسك التلفون", "مسك التلفون", "امسك الهاتف", "مسك الهاتف", "تمسك الجوال", "تمسك الموبايل", "اشيك الجوال", "اطالع الجوال", "اشوف الجوال", "اتصفح الجوال", "استخدم الجوال"]
+                },
+
+                // Opening eyes concepts - require both action and object
+                "تفتح عيونك": {
+                    requiredCombination: [
+                        ["فتح", "افتح", "تفتح"], // action words
+                        ["عين", "عيون", "عيني", "عيونك", "عينك"] // object words
+                    ],
+                    exactSynonyms: ["افتح عيوني", "فتح العيون", "افتح عيني", "تفتح عينك", "فتح عيني", "افتح عيوني", "تفتح عيونك"]
+                },
+
+                // Alarm concepts - require both action and object
+                "تطفي المنبه": {
+                    requiredCombination: [
+                        ["طفي", "اطفي", "تطفي", "اقفل", "قفل", "اسكت"], // action words
+                        ["منبه", "المنبه"] // object words
+                    ],
+                    exactSynonyms: ["اطفي المنبه", "اقفل المنبه", "توقف المنبه", "اسكت المنبه", "طفي المنبه", "قفل المنبه", "تطفي المنبه"]
+                },
+
+                // Bathroom concepts - require going action and place
+                "تروح الحمام": {
+                    requiredCombination: [
+                        ["روح", "اروح", "تروح", "ادخل", "دخل"], // action words
+                        ["حمام", "الحمام", "دورة", "مياه"] // place words
+                    ],
+                    exactSynonyms: ["اروح الحمام", "ادخل الحمام", "اروح دورة المياه", "ادخل دورة المياه", "روح الحمام", "دخل الحمام", "تروح الحمام"]
+                },
+
+                // Washing face/brushing teeth concepts - require action and body part
+                "تغسل وجهك / تفرش أسنانك": {
+                    requiredCombination: [
+                        ["غسل", "اغسل", "تغسل", "فرش", "افرش", "تفرش", "نظف", "انظف", "تنظف"], // action words
+                        ["وجه", "وجهي", "وجهك", "اسنان", "اسناني", "أسنانك"] // body part words
+                    ],
+                    exactSynonyms: ["اغسل وجهي", "تفرش أسنانك", "افرش اسناني", "اغسل وجهي وافرش اسناني", "تنظف وجهك", "انظف وجهي", "غسل الوجه", "فرش الاسنان", "تغسل وجهك", "تفرش أسنانك"]
+                },
+
+                // Prayer concepts - specific religious action
+                "تصلي": {
+                    exactSynonyms: ["اصلي", "الصلاة", "صلاة الفجر", "صلي الفجر", "اصلي الفجر", "تصلي", "صلي", "صلاة"]
+                },
+
+                // Salary increase concepts
+                "زيادة راتب": {
+                    exactSynonyms: ["زيادة المرتب", "علاوة", "زيادة الراتب", "رفع الراتب", "زيادة في الراتب", "علاوة راتب", "زيادة راتب"]
+                },
+
+                // Promotion concepts
+                "ترقية": {
+                    exactSynonyms: ["ترقيه", "منصب اعلى", "مركز اعلى", "ترقية في المنصب", "منصب افضل", "ترقية"]
+                },
+
+                // Vacation concepts
+                "إجازة": {
+                    exactSynonyms: ["اجازة", "عطلة", "راحة", "اجازه", "عطله", "اجازة طويلة", "إجازة"]
+                },
+
+                // Bonus concepts
+                "مكافأة": {
+                    exactSynonyms: ["مكافاة", "بونص", "حافز", "مكافئة", "مكافأة مالية", "حافز مالي", "مكافأة"]
+                },
+
+                // Work hours concepts
+                "ساعات عمل أقل": {
+                    exactSynonyms: ["ساعات اقل", "وقت عمل اقل", "دوام اقل", "ساعات عمل قليلة", "وقت اقل", "ساعات عمل أقل"]
+                },
+
+                // Hospital concepts
+                "المستشفى": {
+                    keyWords: ["مستشفى", "مشفى", "عيادة"],
+                    synonyms: ["المستشفا", "المشفى", "العيادة", "مستشفا", "مشفى", "عيادة"]
+                },
+
+                // Airport concepts
+                "المطار": {
+                    keyWords: ["مطار"],
+                    synonyms: ["مطار", "المطار"]
+                },
+
+                // Bank concepts
+                "البنك": {
+                    keyWords: ["بنك", "مصرف"],
+                    synonyms: ["بنك", "المصرف", "مصرف"]
+                },
+
+                // Restaurant concepts
+                "مطعم": {
+                    keyWords: ["مطعم", "مقهى", "كافيه"],
+                    synonyms: ["المطعم", "مقهى", "كافيه", "مطاعم", "كافية"]
+                },
+
+                // Barber concepts
+                "حلاق": {
+                    keyWords: ["حلاق", "كوافير", "صالون"],
+                    synonyms: ["الحلاق", "كوافير", "صالون", "صالون حلاقة"]
+                },
+
+                // Sleep concepts
+                "تنام": {
+                    keyWords: ["نام", "نوم", "رقد"],
+                    synonyms: ["انام", "النوم", "ارقد", "تنوم", "نوم", "رقاد"]
+                },
+
+                // Watch movie/series concepts
+                "تتابع فلم (مسلسل)": {
+                    keyWords: ["تابع", "شوف", "فلم", "مسلسل", "فيلم"],
+                    synonyms: ["اتابع فلم", "تشوف فلم", "اشوف فلم", "تتابع مسلسل", "اتابع مسلسل", "فيلم", "مسلسل", "شاهد فلم", "اشاهد فلم"]
+                },
+
+                // Internet concepts
+                "تدور نت": {
+                    keyWords: ["دور", "نت", "انترنت", "واي", "فاي", "تصفح"],
+                    synonyms: ["ادور نت", "انترنت", "واي فاي", "wifi", "تتصفح", "اتصفح", "دور في النت", "تصفح النت"]
+                },
+
+                // Food concepts
+                "تطلب أكل": {
+                    keyWords: ["طلب", "اكل", "طعام", "وجبة"],
+                    synonyms: ["اطلب اكل", "طعام", "وجبة", "طلب طعام", "اطلب طعام", "طلب وجبة"]
+                },
+
+                // Game concepts
+                "تلعب لعبة": {
+                    keyWords: ["لعب", "لعبة", "العاب"],
+                    synonyms: ["العب لعبة", "لعبه", "العاب", "لعب لعبة", "العب العاب"]
+                },
+
+                // Passport concepts
+                "الجواز": {
+                    keyWords: ["جواز", "باسبور"],
+                    synonyms: ["جواز السفر", "الباسبور", "باسبور", "جواز سفر"]
+                },
+
+                // Ticket concepts
+                "التذكرة": {
+                    keyWords: ["تذكرة", "تكت", "بطاقة"],
+                    synonyms: ["تذكرة", "التكت", "بطاقة السفر", "تكت", "تذكرة سفر"]
+                },
+
+                // Money concepts
+                "الفلوس": {
+                    keyWords: ["فلوس", "مال", "نقود", "اموال"],
+                    synonyms: ["فلوس", "المال", "النقود", "الاموال", "مال", "نقود", "اموال"]
+                },
+
+                // Phone concepts (travel context)
+                "الجوال": {
+                    keyWords: ["جوال", "موبايل", "تلفون", "هاتف"],
+                    synonyms: ["جوال", "الموبايل", "التلفون", "موبايل", "تلفون", "هاتف"]
+                },
+
+                // Bag concepts
+                "الشنطة": {
+                    keyWords: ["شنطة", "حقيبة"],
+                    synonyms: ["شنطة", "الحقيبة", "حقيبة", "شنط", "حقائب"]
+                },
+
+                // ID card concepts
+                "بطاقة الهوية": {
+                    keyWords: ["بطاقة", "هوية", "شخصية"],
+                    synonyms: ["الهوية", "هوية", "بطاقة شخصية", "بطاقة هوية", "هوية شخصية"]
+                },
+
+                // Candle concepts
+                "تدور على شمعة": {
+                    keyWords: ["دور", "شمعة", "جيب"],
+                    synonyms: ["ادور على شمعة", "شمعة", "اجيب شمعة", "دور شمعة", "البحث عن شمعة"]
+                },
+
+                // Go outside concepts
+                "تطلع برا": {
+                    keyWords: ["طلع", "برا", "خرج"],
+                    synonyms: ["اطلع برا", "اخرج", "اروح برا", "طلع برا", "خرج برا"]
+                },
+
+                // Call electricity company concepts
+                "تكلم شركة الكهرباء": {
+                    keyWords: ["كلم", "شركة", "كهرباء", "اتصل"],
+                    synonyms: ["اكلم شركة الكهرباء", "اتصل بالكهرباء", "كلم الكهرباء", "اتصل بشركة الكهرباء"]
+                },
+
+                // Go sleep concepts
+                "تروح تنام": {
+                    keyWords: ["روح", "نام", "رقد"],
+                    synonyms: ["اروح انام", "انام", "ارقد", "روح نام", "اذهب انام"]
+                },
+
+                // Play with phone concepts
+                "تلعب بالجوال لين يفتح": {
+                    keyWords: ["لعب", "جوال", "استخدم"],
+                    synonyms: ["العب بالجوال", "استخدم الجوال", "لعب بالجوال", "استعمل الجوال"]
+                },
+
+                // Remote control concepts
+                "الريموت": {
+                    keyWords: ["ريموت", "تحكم", "جهاز"],
+                    synonyms: ["ريموت", "الريموت كنترول", "جهاز التحكم", "ريموت كنترول"]
+                },
+
+                // Keys concepts
+                "المفاتيح": {
+                    keyWords: ["مفاتيح", "مفتاح"],
+                    synonyms: ["مفاتيح", "المفتاح", "مفتاح", "مفاتح"]
+                },
+
+                // Charger concepts
+                "الشاحن": {
+                    keyWords: ["شاحن"],
+                    synonyms: ["شاحن", "شاحن الجوال", "شاحن الموبايل", "شاحن التلفون"]
+                },
+
+                // Card concepts
+                "البطاقة": {
+                    keyWords: ["بطاقة", "كرت"],
+                    synonyms: ["بطاقة", "الكرت", "كرت", "بطاقات"]
+                },
+
+                // Traffic concepts
+                "الزحمة": {
+                    keyWords: ["زحمة", "زحام"],
+                    synonyms: ["زحمة", "الزحام", "زحام", "زحمه"]
+                },
+
+                // Sleep concepts (being late)
+                "النوم": {
+                    keyWords: ["نوم", "سهر"],
+                    synonyms: ["نوم", "السهر", "سهر", "نمت", "سهرت"]
+                },
+
+                // Alarm didn't ring concepts
+                "المنبه ما رن": {
+                    keyWords: ["منبه", "رن", "تعطل", "شتغل"],
+                    synonyms: ["المنبه مارن", "المنبه تعطل", "المنبه ماشتغل", "منبه ما رن", "منبه تعطل"]
+                },
+
+                // Breakfast concepts
+                "الفطور": {
+                    keyWords: ["فطور", "فطار"],
+                    synonyms: ["فطور", "الفطار", "فطار", "وجبة الفطور"]
+                },
+
+                // Car concepts
+                "السيارة": {
+                    keyWords: ["سيارة", "عربية"],
+                    synonyms: ["سيارة", "العربية", "عربية", "سيارتي", "عربيتي"]
+                },
+
+                // Library concepts
+                "المكتبة": {
+                    keyWords: ["مكتبة"],
+                    synonyms: ["مكتبة", "المكتبه"]
+                },
+
+                // Mosque concepts
+                "المسجد": {
+                    keyWords: ["مسجد", "جامع"],
+                    synonyms: ["مسجد", "الجامع", "جامع", "مساجد"]
+                },
+
+                // Cinema concepts
+                "السينما": {
+                    keyWords: ["سينما", "دار"],
+                    synonyms: ["سينما", "دار السينما", "سينمات"]
+                },
+
+                // Court concepts
+                "المحكمة": {
+                    keyWords: ["محكمة", "محاكم"],
+                    synonyms: ["محكمة", "المحاكم", "محاكم"]
+                }
+            };
+
+            // Check if the correct answer matches any concept
+            for (const [concept, data] of Object.entries(conceptMappings)) {
+                if (correctAnswer.includes(concept) || concept.includes(correctAnswer)) {
+
+                    // First check exact synonyms
+                    if (data.exactSynonyms) {
+                        const inExactSynonyms = data.exactSynonyms.some(synonym =>
+                            userAnswer.includes(synonym) || synonym.includes(userAnswer) ||
+                            removeArabicDiacritics(userAnswer) === removeArabicDiacritics(synonym)
+                        );
+
+                        if (inExactSynonyms) {
+                            return true;
+                        }
+                    }
+
+                    // Then check required combinations (both action and object must be present)
+                    if (data.requiredCombination && data.requiredCombination.length === 2) {
+                        const [actionWords, objectWords] = data.requiredCombination;
+
+                        const hasAction = actionWords.some(action =>
+                            userAnswer.includes(action)
+                        );
+
+                        const hasObject = objectWords.some(object =>
+                            userAnswer.includes(object)
+                        );
+
+                        // Both action and object must be present
+                        if (hasAction && hasObject) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        function correctAnswerKeyWordsInUser(userAnswer, correctAnswer) {
+            // Extract meaningful words from correct answer (excluding common words)
+            const commonWords = ["في", "من", "إلى", "على", "عن", "مع", "أن", "كان", "هو", "هي", "أنت", "أنا", "ال", "و", "أو", "ما", "لا", "لين", "يفتح"];
+            const correctWords = correctAnswer.split(/\s+/).filter(word =>
+                word.length > 2 && !commonWords.includes(word.replace(/[^\u0600-\u06FF\s]/g, ''))
+            );
+
+            // Check if at least one meaningful word from correct answer is in user answer
+            return correctWords.some(word =>
+                userAnswer.includes(word) ||
+                removeArabicDiacritics(userAnswer).includes(removeArabicDiacritics(word))
+            );
+        }
+
+
+
+        function removeArabicDiacritics(text) {
+            // Remove Arabic diacritics for better matching
+            return text.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, '');
+        }
+
+
+
+        function showTopAnswerTeamSelection(answerPosition, points) {
+            const resultMessage = document.getElementById('resultMessage');
+            const positionText = answerPosition === 'first' ? 'الأولى' : 'الثانية';
+
+            resultMessage.innerHTML = `
+                <div class="text-center">
+                    <p class="text-white text-xl mb-2">🏆 الإجابة ${positionText} هي الأعلى نقاطاً!</p>
+                    <p class="text-yellow-400 text-lg mb-4">مين يكمل السؤال؟</p>
+                    <div class="flex justify-center gap-4">
+                        <button onclick="selectTopAnswerTeam('blue', ${points})" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-bold text-lg transition-all duration-300 transform hover:scale-105">
+                            🔵 الفريق الأزرق
+                        </button>
+                        <button onclick="selectTopAnswerTeam('red', ${points})" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-bold text-lg transition-all duration-300 transform hover:scale-105">
+                            🔴 الفريق الأحمر
+                        </button>
+                    </div>
+                </div>
+            `;
+            resultMessage.className = 'text-center text-xl font-bold mb-4 h-auto';
+        }
+
+        function showTeamSelectionButtons() {
+            const resultMessage = document.getElementById('resultMessage');
+            const bluePoints = initialAnswers.blue.points;
+            const redPoints = initialAnswers.red.points;
+
+            resultMessage.innerHTML = `
+                <div class="text-center">
+                    <p class="text-white text-xl mb-4">مين يكمل السؤال؟</p>
+                    <div class="flex justify-center gap-4">
+                        <button onclick="selectTeam('blue')" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-bold text-lg transition-all duration-300 transform hover:scale-105">
+                            🔵 الفريق الأزرق
+                        </button>
+                        <button onclick="selectTeam('red')" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg font-bold text-lg transition-all duration-300 transform hover:scale-105">
+                            🔴 الفريق الأحمر
+                        </button>
+                    </div>
+                </div>
+            `;
+            resultMessage.className = 'text-center text-xl font-bold mb-4 h-auto';
+        }
+
+        function selectTopAnswerTeam(selectedTeam, topAnswerPoints) {
+            const resultMessage = document.getElementById('resultMessage');
+
+            currentTeam = selectedTeam;
+            playingTeam = selectedTeam; // Remember which team was selected to play
+
+            // Add points to selected team - only the top answer points
+            if (selectedTeam === 'blue') {
+                blueScore += topAnswerPoints;
+                resultMessage.textContent = `🏆 السؤال ينتقل للفريق الأزرق!`;
+                resultMessage.className = 'text-center text-xl font-bold mb-4 h-8 text-blue-400';
+
+                // Add celebration animation
+                document.getElementById('blueTeam').classList.add('team-celebration', 'pulse-glow');
+                setTimeout(() => {
+                    document.getElementById('blueTeam').classList.remove('team-celebration', 'pulse-glow');
+                }, 1500);
+            } else {
+                redScore += topAnswerPoints;
+                resultMessage.textContent = `🏆 السؤال ينتقل للفريق الأحمر!`;
+                resultMessage.className = 'text-center text-xl font-bold mb-4 h-8 text-red-400';
+
+                // Add celebration animation
+                document.getElementById('redTeam').classList.add('team-celebration', 'pulse-glow');
+                setTimeout(() => {
+                    document.getElementById('redTeam').classList.remove('team-celebration', 'pulse-glow');
+                }, 1500);
+            }
+
+            // Switch to playing phase
+            gamePhase = 'playing';
+            mistakes = 0;
+            updateTeamDisplay();
+
+            setTimeout(() => {
+                resultMessage.textContent = `الفريق ${currentTeam === 'blue' ? 'الأزرق' : 'الأحمر'} يكمل باقي الإجابات`;
+                resultMessage.className = `text-center text-xl font-bold mb-4 h-8 ${currentTeam === 'blue' ? 'text-blue-400' : 'text-red-400'}`;
+            }, 1500);
+        }
+
+        function selectTeam(selectedTeam) {
+            const resultMessage = document.getElementById('resultMessage');
+            const bluePoints = initialAnswers.blue.points;
+            const redPoints = initialAnswers.red.points;
+
+            currentTeam = selectedTeam;
+            playingTeam = selectedTeam; // Remember which team was selected to play
+
+            // Add points to selected team
+            if (selectedTeam === 'blue') {
+                blueScore += bluePoints + redPoints;
+                resultMessage.textContent = `🏆 السؤال ينتقل للفريق الأزرق!`;
+                resultMessage.className = 'text-center text-xl font-bold mb-4 h-8 text-blue-400';
+            } else {
+                redScore += bluePoints + redPoints;
+                resultMessage.textContent = `🏆 السؤال ينتقل للفريق الأحمر!`;
+                resultMessage.className = 'text-center text-xl font-bold mb-4 h-8 text-red-400';
+            }
+
+            // Switch to playing phase
+            gamePhase = 'playing';
+            mistakes = 0;
+            updateTeamDisplay();
+
+            setTimeout(() => {
+                resultMessage.textContent = `الفريق ${currentTeam === 'blue' ? 'الأزرق' : 'الأحمر'} يكمل باقي الإجابات`;
+                resultMessage.className = `text-center text-xl font-bold mb-4 h-8 ${currentTeam === 'blue' ? 'text-blue-400' : 'text-red-400'}`;
+            }, 500);
+        }
+
+        function switchTeam() {
+            currentTeam = currentTeam === 'blue' ? 'red' : 'blue';
+            mistakes = 0;
+            updateTeamDisplay();
+        }
+
+        function createAnswersGrid() {
+            const grid = document.getElementById('answersGrid');
+            const currentQuestion = questions[currentQuestionIndex];
+
+            grid.innerHTML = '';
+            currentQuestion.answers.forEach((answer, index) => {
+                const answerDiv = document.createElement('div');
+                answerDiv.className = 'bg-white/15 backdrop-blur-lg border-2 border-white/40 rounded-lg p-3 text-center shadow-lg smooth-transition transform hover:scale-105';
+                answerDiv.id = `answer-${index}`;
+
+                // Add staggered animation delay
+                answerDiv.style.animationDelay = (index * 0.1) + 's';
+                answerDiv.classList.add('fade-in-smooth');
+
+                // Check if this is an empty answer
+                if (answer === "") {
+                    answerDiv.innerHTML = `
+                        <div class="text-xl lg:text-2xl font-bold text-white/30 mb-1">&nbsp;</div>
+                        <div class="text-white/30 text-sm lg:text-base">&nbsp;</div>
+                        <div class="text-yellow-400/30 text-sm lg:text-base font-bold mt-1">${currentQuestion.points[index]} نقطة</div>
+                    `;
+                } else {
+                    answerDiv.innerHTML = `
+                        <div class="text-lg lg:text-xl font-bold text-white/60 mb-1">❓</div>
+                        <div class="text-white/60 text-xs lg:text-sm">إجابة مخفية</div>
+                        <div class="text-yellow-400 text-xs lg:text-sm font-bold mt-1">${currentQuestion.points[index]} نقطة</div>
+                    `;
+                }
+                grid.appendChild(answerDiv);
+            });
+        }
+
+        function updateAnswersGrid() {
+            const currentQuestion = questions[currentQuestionIndex];
+            currentQuestion.answers.forEach((answer, index) => {
+                const answerDiv = document.getElementById(`answer-${index}`);
+                if (foundAnswers.includes(answer)) {
+                    // Add smooth transition and correct answer reveal animation
+                    answerDiv.classList.add('correct-answer-reveal', 'smooth-transition');
+                    answerDiv.className = 'bg-green-500/30 backdrop-blur-lg border-2 border-green-400 rounded-lg p-3 text-center shadow-lg correct-answer-reveal smooth-transition';
+                    answerDiv.innerHTML = `
+                        <div class="text-lg lg:text-xl mb-1">✅</div>
+                        <div class="text-white font-bold text-xs lg:text-sm mb-1">${answer}</div>
+                        <div class="text-green-300 text-xs lg:text-sm font-bold">${currentQuestion.points[index]} نقطة</div>
+                    `;
+
+                    // Add glow effect after reveal animation
+                    setTimeout(() => {
+                        answerDiv.classList.add('answer-glow');
+                    }, 1200);
+                }
+            });
+        }
+
+        function submitAnswer() {
+            const input = document.getElementById('answerInput');
+            const userAnswer = input.value.trim();
+            const resultMessage = document.getElementById('resultMessage');
+
+            if (!userAnswer) return;
+
+            const currentQuestion = questions[currentQuestionIndex];
+
+            // Smart answer checking with synonyms and similar meanings
+            const correctAnswer = findMatchingAnswer(userAnswer, currentQuestion.answers);
+
+            // Check if answer was already found (only in playing/switched phases)
+            if ((gamePhase === 'playing' || gamePhase === 'switched') && correctAnswer && foundAnswers.includes(correctAnswer)) {
+                // Handle duplicate as wrong answer
+                resultMessage.textContent = `❌ "${correctAnswer}" موجودة بالفعل!`;
+                resultMessage.className = 'text-center text-xl font-bold mb-4 h-8 text-red-600';
+                showSimpleWrongAnimation();
+
+                mistakes++;
+                updateTeamDisplay();
+
+                if (mistakes >= maxMistakes && gamePhase === 'playing') {
+                    // Switch to other team
+                    const otherTeam = currentTeam === 'blue' ? 'red' : 'blue';
+                    currentTeam = otherTeam;
+                    switchedToTeam = otherTeam;
+                    gamePhase = 'switched';
+                    mistakes = 0;
+
+                    resultMessage.textContent = `❌ 3 أخطاء! السؤال ينتقل للفريق ${otherTeam === 'blue' ? 'الأزرق' : 'الأحمر'}`;
+                    resultMessage.className = `text-center text-xl font-bold mb-4 h-8 ${otherTeam === 'blue' ? 'text-blue-400' : 'text-red-400'}`;
+                    updateTeamDisplay();
+                } else if (gamePhase === 'switched') {
+                    // In switched phase, wrong answer ends the question
+                    const foundPointsOnly = foundAnswers.reduce((total, answer) => {
+                        return total + getAnswerPoints(answer);
+                    }, 0);
+
+                    if (playingTeam === 'blue') {
+                        blueScore += foundPointsOnly;
+                    } else {
+                        redScore += foundPointsOnly;
+                    }
+
+                    updateTeamDisplay();
+
+                    resultMessage.textContent = `❌ إجابة مكررة! ${foundPointsOnly} نقطة للفريق ${playingTeam === 'blue' ? 'الأزرق' : 'الأحمر'}`;
+                    resultMessage.className = `text-center text-xl font-bold mb-4 h-8 ${playingTeam === 'blue' ? 'text-blue-400' : 'text-red-400'}`;
+
+                    setTimeout(() => {
+                        nextQuestion();
+                    }, 1500);
+                }
+
+                input.value = '';
+                input.focus();
+                return;
+            }
+
+            if (gamePhase === 'initial') {
+                // Initial phase - collect answers (no duplicate checking here)
+                if (correctAnswer) {
+                    // Add to found answers if not already there
+                    if (!foundAnswers.includes(correctAnswer)) {
+                        foundAnswers.push(correctAnswer);
+                    }
+
+                    const points = getAnswerPoints(correctAnswer);
+
+                    // Check if this is the highest scoring answer (first answer in the list)
+                    const isTopAnswer = currentQuestion.answers[0] === correctAnswer;
+
+                    if (!initialAnswers.blue && !initialAnswers.red) {
+                        // First answer - not assigned to any team
+                        initialAnswers.blue = { answer: correctAnswer, points: points, isCorrect: true };
+                        resultMessage.textContent = `✅ الإجابة الأولى: ${correctAnswer}`;
+                        resultMessage.className = 'text-center text-xl font-bold mb-4 h-8 text-green-400';
+
+                        updateAnswersGrid();
+                        updateTeamDisplay();
+
+                        // If it's the top answer, show team selection immediately
+                        if (isTopAnswer) {
+                            setTimeout(() => {
+                                showTopAnswerTeamSelection('first', points);
+                            }, 1000);
+                        }
+
+                    } else if (initialAnswers.blue && !initialAnswers.red) {
+                        // Second answer - not assigned to any team
+                        initialAnswers.red = { answer: correctAnswer, points: points, isCorrect: true };
+                        resultMessage.textContent = `✅ الإجابة الثانية: ${correctAnswer}`;
+                        resultMessage.className = 'text-center text-xl font-bold mb-4 h-8 text-green-400';
+
+                        updateAnswersGrid();
+
+                        // Always show team selection after second answer
+                        setTimeout(() => {
+                            // Check if any answer got the top answer
+                            const firstHasTopAnswer = initialAnswers.blue.isCorrect && currentQuestion.answers[0] === initialAnswers.blue.answer;
+                            const secondHasTopAnswer = initialAnswers.red.isCorrect && currentQuestion.answers[0] === initialAnswers.red.answer;
+
+                            if (firstHasTopAnswer) {
+                                showTopAnswerTeamSelection('first', initialAnswers.blue.points);
+                            } else if (secondHasTopAnswer) {
+                                showTopAnswerTeamSelection('second', initialAnswers.red.points);
+                            } else {
+                                showTeamSelectionButtons();
+                            }
+                        }, 1000);
+                    }
+
+                } else {
+                    // Wrong answer - not assigned to any team, no penalty
+                    if (!initialAnswers.blue && !initialAnswers.red) {
+                        // First answer - wrong but no team penalty
+                        initialAnswers.blue = { answer: userAnswer, points: 0, isCorrect: false };
+                        resultMessage.textContent = `❌ الإجابة الأولى: ${userAnswer} (خاطئة)`;
+                        resultMessage.className = 'text-center text-xl font-bold mb-4 h-8 text-red-400';
+                        updateTeamDisplay();
+
+                    } else if (initialAnswers.blue && !initialAnswers.red) {
+                        // Second answer - wrong but no team penalty
+                        initialAnswers.red = { answer: userAnswer, points: 0, isCorrect: false };
+                        resultMessage.textContent = `❌ الإجابة الثانية: ${userAnswer} (خاطئة)`;
+                        resultMessage.className = 'text-center text-xl font-bold mb-4 h-8 text-red-400';
+
+                        // Always show team selection after second answer
+                        setTimeout(() => {
+                            // Check if any answer got the top answer
+                            const firstHasTopAnswer = initialAnswers.blue.isCorrect && currentQuestion.answers[0] === initialAnswers.blue.answer;
+                            const secondHasTopAnswer = initialAnswers.red.isCorrect && currentQuestion.answers[0] === initialAnswers.red.answer;
+
+                            if (firstHasTopAnswer) {
+                                showTopAnswerTeamSelection('first', initialAnswers.blue.points);
+                            } else if (secondHasTopAnswer) {
+                                showTopAnswerTeamSelection('second', initialAnswers.red.points);
+                            } else {
+                                showTeamSelectionButtons();
+                            }
+                        }, 1000);
+                    }
+                }
+
+            } else {
+                // Playing phase
+                if (correctAnswer && !foundAnswers.includes(correctAnswer)) {
+                    // Correct answer
+                    foundAnswers.push(correctAnswer);
+                    const points = getAnswerPoints(correctAnswer);
+
+                    if (currentTeam === 'blue') {
+                        blueScore += points;
+                        // Add enhanced score animation
+                        document.getElementById('blueScore').classList.add('score-pop');
+                        document.getElementById('blueTeam').classList.add('team-celebration', 'pulse-glow');
+                        setTimeout(() => {
+                            document.getElementById('blueScore').classList.remove('score-pop');
+                            document.getElementById('blueTeam').classList.remove('team-celebration', 'pulse-glow');
+                        }, 1500);
+                    } else {
+                        redScore += points;
+                        // Add enhanced score animation
+                        document.getElementById('redScore').classList.add('score-pop');
+                        document.getElementById('redTeam').classList.add('team-celebration', 'pulse-glow');
+                        setTimeout(() => {
+                            document.getElementById('redScore').classList.remove('score-pop');
+                            document.getElementById('redTeam').classList.remove('team-celebration', 'pulse-glow');
+                        }, 1500);
+                    }
+
+                    updateTeamDisplay();
+
+                    // Create enhanced correct answer animation
+                    createCorrectAnswerAnimation(correctAnswer);
+
+                    // Update the specific answer with animation
+                    const currentQuestion = questions[currentQuestionIndex];
+                    const answerIndex = currentQuestion.answers.indexOf(correctAnswer);
+                    const answerDiv = document.getElementById(`answer-${answerIndex}`);
+
+                    // Add reveal animation to the specific answer
+                    answerDiv.classList.add('correct-answer-reveal', 'smooth-transition');
+                    answerDiv.className = 'bg-green-500/30 backdrop-blur-lg border-2 border-green-400 rounded-lg p-3 text-center shadow-lg correct-answer-reveal smooth-transition';
+                    answerDiv.innerHTML = `
+                        <div class="text-lg lg:text-xl mb-1">✅</div>
+                        <div class="text-white font-bold text-xs lg:text-sm mb-1">${correctAnswer}</div>
+                        <div class="text-green-300 text-xs lg:text-sm font-bold">${currentQuestion.points[answerIndex]} نقطة</div>
+                    `;
+
+                    // Add glow effect after reveal animation
+                    setTimeout(() => {
+                        answerDiv.classList.add('answer-glow');
+                    }, 1200);
+
+                    // Add enhanced success effects
+                    showEnhancedCorrectAnimation();
+
+                    resultMessage.textContent = `✅ إجابة صحيحة! +${points} نقطة`;
+                    resultMessage.className = `text-center text-xl font-bold mb-4 h-8 ${currentTeam === 'blue' ? 'text-blue-400' : 'text-red-400'} bounce-smooth`;
+
+                    // Check if all answers found
+                    if (foundAnswers.length === currentQuestion.answers.filter(a => a !== "").length) {
+                        setTimeout(() => {
+                            nextQuestion();
+                        }, 2000);
+                    }
+
+
+
+                } else {
+                    // Wrong answer - add simple animation
+                    showSimpleWrongAnimation();
+
+                    if (gamePhase === 'switched') {
+                        // In switched phase, wrong answer ends the question
+                        const foundPointsOnly = foundAnswers.reduce((total, answer) => {
+                            return total + getAnswerPoints(answer);
+                        }, 0);
+
+                        if (playingTeam === 'blue') {
+                            blueScore += foundPointsOnly;
+                        } else {
+                            redScore += foundPointsOnly;
+                        }
+
+                        updateTeamDisplay();
+
+                        resultMessage.textContent = `❌ إجابة خاطئة! ${foundPointsOnly} نقطة للفريق ${playingTeam === 'blue' ? 'الأزرق' : 'الأحمر'}`;
+                        resultMessage.className = `text-center text-xl font-bold mb-4 h-8 ${playingTeam === 'blue' ? 'text-blue-400' : 'text-red-400'}`;
+
+                        setTimeout(() => {
+                            nextQuestion();
+                        }, 1500);
+
+                    } else {
+                        // Normal playing phase
+                        mistakes++;
+                        updateTeamDisplay();
+
+                        if (mistakes >= maxMistakes) {
+                            // Switch to other team
+                            const otherTeam = currentTeam === 'blue' ? 'red' : 'blue';
+                            currentTeam = otherTeam;
+                            switchedToTeam = otherTeam;
+                            gamePhase = 'switched';
+                            mistakes = 0;
+
+                            resultMessage.textContent = `❌ 3 أخطاء! السؤال ينتقل للفريق ${otherTeam === 'blue' ? 'الأزرق' : 'الأحمر'}`;
+                            resultMessage.className = `text-center text-xl font-bold mb-4 h-8 ${otherTeam === 'blue' ? 'text-blue-400' : 'text-red-400'}`;
+                            updateTeamDisplay();
+                        } else {
+                            resultMessage.textContent = `❌ إجابة خاطئة! خطأ ${mistakes} من 3`;
+                            resultMessage.className = 'text-center text-xl font-bold mb-4 h-8 text-red-600';
+                        }
+                    }
+                }
+            }
+
+            input.value = '';
+            input.focus();
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            questionInRound++;
+
+            // Check if round is finished (3 questions per round)
+            if (questionInRound >= 3) {
+                currentRoundIndex++;
+                questionInRound = 0;
+
+                // Check if all rounds are finished
+                if (currentRoundIndex >= rounds.length) {
+                    showFinalResult();
+                    return;
+                }
+
+                // Show round end screen
+                showRoundEndScreen();
+                return;
+            }
+
+            displayQuestion();
+            createAnswersGrid();
+        }
+
+        function showRoundEndScreen() {
+            gameState = 'roundEnd';
+            const currentRound = rounds[currentRoundIndex - 1]; // Previous round that just ended
+            const nextRound = rounds[currentRoundIndex]; // Next round
+
+            document.getElementById('question').textContent = `🎉 انتهت ${currentRound.name}!`;
+            document.getElementById('answersGrid').innerHTML = `
+                <div class="col-span-full text-center">
+                    <div class="bg-gradient-to-r from-purple-500/20 to-blue-500/20 backdrop-blur-lg border-2 border-purple-400 rounded-xl p-6 mb-6">
+                        <h3 class="text-3xl font-bold text-purple-300 mb-4">🏆 نتائج ${currentRound.name}</h3>
+                        <div class="flex justify-center gap-8 mb-6">
+                            <div class="text-center">
+                                <p class="text-xl text-blue-300 mb-2">🔵 الفريق الأزرق</p>
+                                <p class="text-4xl font-bold text-white">${blueScore}</p>
+                                <p class="text-lg text-blue-300">نقطة</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xl text-red-300 mb-2">🔴 الفريق الأحمر</p>
+                                <p class="text-4xl font-bold text-white">${redScore}</p>
+                                <p class="text-lg text-red-300">نقطة</p>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <h4 class="text-xl font-bold text-white mb-3">القادم: ${nextRound.name}</h4>
+                            <p class="text-lg text-gray-300">3 أسئلة جديدة في انتظاركم!</p>
+                        </div>
+
+                        <div class="flex justify-center gap-4">
+                            <button onclick="continueToNextRound()" class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
+                                🎮 أكمل اللعبة
+                            </button>
+                            <button onclick="pauseGame()" class="bg-yellow-500 hover:bg-yellow-600 text-white px-8 py-3 rounded-lg font-bold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
+                                ⏸️ أكمل بعدين
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Hide control buttons during round end
+            document.querySelector('.flex.flex-wrap').style.display = 'none';
+        }
+
+        function continueToNextRound() {
+            gameState = 'playing';
+            document.querySelector('.flex.flex-wrap').style.display = 'flex';
+            displayQuestion();
+            createAnswersGrid();
+        }
+
+        function pauseGame() {
+            document.getElementById('answersGrid').innerHTML = `
+                <div class="col-span-full text-center">
+                    <div class="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-lg border-2 border-yellow-400 rounded-xl p-8">
+                        <h3 class="text-4xl font-bold text-yellow-300 mb-4">⏸️ اللعبة متوقفة</h3>
+                        <p class="text-xl text-white mb-6">يمكنكم العودة لاحقاً لإكمال ${rounds[currentRoundIndex].name}</p>
+
+                        <div class="bg-white/10 rounded-lg p-4 mb-6">
+                            <h4 class="text-lg font-bold text-white mb-3">النقاط الحالية:</h4>
+                            <div class="flex justify-center gap-8">
+                                <div class="text-center">
+                                    <p class="text-blue-300 font-bold">🔵 الأزرق</p>
+                                    <p class="text-2xl font-bold text-white">${blueScore}</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-red-300 font-bold">🔴 الأحمر</p>
+                                    <p class="text-2xl font-bold text-white">${redScore}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center gap-4">
+                            <button onclick="continueToNextRound()" class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-bold text-lg transition-all duration-300 transform hover:scale-105">
+                                🎮 أكمل الآن
+                            </button>
+                            <button onclick="restartGame()" class="bg-red-500 hover:bg-red-600 text-white px-8 py-3 rounded-lg font-bold text-lg transition-all duration-300 transform hover:scale-105">
+                                🔄 ابدأ من جديد
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showFinalResult() {
+            const winner = blueScore > redScore ? 'الفريق الأزرق' :
+                          redScore > blueScore ? 'الفريق الأحمر' : 'تعادل';
+            const winnerColor = blueScore > redScore ? 'text-blue-400' :
+                               redScore > blueScore ? 'text-red-400' : 'text-yellow-400';
+
+            document.getElementById('question').textContent = '🎊 انتهت اللعبة!';
+            document.getElementById('answersGrid').innerHTML = `
+                <div class="col-span-full text-center">
+                    <h3 class="text-5xl font-bold ${winnerColor} mb-6">👑 ${winner} هو الفائز!</h3>
+                    <div class="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 backdrop-blur-lg border-2 border-yellow-400 rounded-xl p-6 mb-6">
+                        <h4 class="text-2xl font-bold text-yellow-300 mb-4">النتائج النهائية</h4>
+                        <div class="flex justify-center gap-8">
+                            <div class="text-center">
+                                <p class="text-xl text-blue-300 mb-2">🔵 الفريق الأزرق</p>
+                                <p class="text-3xl font-bold text-white">${blueScore}</p>
+                                <p class="text-lg text-blue-300">نقطة</p>
+                            </div>
+                            <div class="text-center">
+                                <p class="text-xl text-red-300 mb-2">🔴 الفريق الأحمر</p>
+                                <p class="text-3xl font-bold text-white">${redScore}</p>
+                                <p class="text-lg text-red-300">نقطة</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-center gap-4">
+                        <button onclick="restartGame()" class="bg-green-500 hover:bg-green-600 text-white px-8 py-3 rounded-lg font-bold text-lg">
+                            🎮 لعبة جديدة
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.querySelector('.flex.flex-wrap').style.display = 'none';
+        }
+
+        function previousQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                displayQuestion();
+                createAnswersGrid();
+            }
+        }
+
+        function revealAllAnswers() {
+            const currentQuestion = questions[currentQuestionIndex];
+            const revealBtn = document.getElementById('revealBtn');
+
+            // Add button animation
+            revealBtn.classList.add('animate-pulse');
+            revealBtn.disabled = true;
+            revealBtn.textContent = '⏳ جاري الكشف...';
+
+            // Create particles effect
+            createParticles(revealBtn);
+
+            // Reveal answers one by one with animation
+            currentQuestion.answers.forEach((answer, index) => {
+                setTimeout(() => {
+                    if (!foundAnswers.includes(answer)) {
+                        foundAnswers.push(answer);
+                        const answerDiv = document.getElementById(`answer-${index}`);
+                        answerDiv.classList.add('reveal-animation');
+                        answerDiv.className = 'bg-yellow-500/30 backdrop-blur-lg border-2 border-yellow-400 rounded-xl p-4 text-center reveal-animation shadow-lg transform hover:scale-105 transition-all duration-300';
+                        answerDiv.innerHTML = `
+                            <div class="text-2xl lg:text-3xl sparkle mb-1">✨</div>
+                            <div class="text-white font-bold text-sm lg:text-base mb-1">${answer}</div>
+                            <div class="text-yellow-300 text-sm lg:text-base font-bold">${currentQuestion.points[index]} نقطة</div>
+                        `;
+
+                        // Add magical particles around the revealed answer
+                        createMagicalParticles(answerDiv);
+
+                        // Add sound effect simulation with visual feedback
+                        setTimeout(() => {
+                            answerDiv.className = 'bg-green-500/30 backdrop-blur-lg border-2 border-green-400 rounded-xl p-4 text-center shadow-lg';
+                            answerDiv.innerHTML = `
+                                <div class="text-2xl lg:text-3xl mb-1">✅</div>
+                                <div class="text-white font-bold text-sm lg:text-base mb-1">${answer}</div>
+                                <div class="text-green-300 text-sm lg:text-base font-bold">${currentQuestion.points[index]} نقطة</div>
+                            `;
+                        }, 600);
+                    }
+                }, index * 150);
+            });
+
+            // Final message and button states
+            setTimeout(() => {
+                document.getElementById('resultMessage').textContent = '🎉 تم كشف جميع الإجابات بنجاح!';
+                document.getElementById('resultMessage').className = 'text-center text-xl font-bold mb-4 h-8 text-purple-600 bounce-in';
+
+                // Reset reveal button
+                revealBtn.classList.remove('animate-pulse');
+                revealBtn.disabled = false;
+                revealBtn.textContent = '🔍 كشف جميع الإجابات';
+            }, currentQuestion.answers.length * 150 + 1000);
+        }
+
+        function createParticles(element) {
+            const rect = element.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+
+            for (let i = 0; i < 12; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = centerX + 'px';
+                particle.style.top = centerY + 'px';
+                particle.style.animationDelay = (i * 0.05) + 's';
+
+                // Random direction
+                const angle = (i * 30) * Math.PI / 180;
+                const distance = 50 + Math.random() * 50;
+                particle.style.setProperty('--end-x', Math.cos(angle) * distance + 'px');
+                particle.style.setProperty('--end-y', Math.sin(angle) * distance + 'px');
+
+                document.body.appendChild(particle);
+
+                setTimeout(() => {
+                    particle.remove();
+                }, 1500);
+            }
+        }
+
+        function restartGame() {
+            currentQuestionIndex = 0;
+            currentRoundIndex = 0;
+            questionInRound = 0;
+            blueScore = 0;
+            redScore = 0;
+            foundAnswers = [];
+            currentTeam = 'blue';
+            mistakes = 0;
+            gamePhase = 'initial';
+            initialAnswers = { blue: null, red: null };
+            playingTeam = null;
+            switchedToTeam = null;
+            questionSwitched = false;
+            gameState = 'playing';
+            document.querySelector('.flex.flex-wrap').style.display = 'flex';
+            initializeGame();
+        }
+
+        function showWrongAnswerAnimation() {
+            // Create big X in center of screen
+            const wrongX = document.createElement('div');
+            wrongX.className = 'wrong-x';
+            wrongX.textContent = '❌';
+            document.body.appendChild(wrongX);
+
+            // Add screen flash effect
+            document.body.classList.add('screen-flash');
+
+            // Create wrong particles
+            createWrongParticles();
+
+            // Remove elements after animation
+            setTimeout(() => {
+                wrongX.remove();
+                document.body.classList.remove('screen-flash');
+            }, 1000);
+
+            // Add vibration effect if supported
+            if (navigator.vibrate) {
+                navigator.vibrate([100, 50, 100]);
+            }
+        }
+
+        function createWrongParticles() {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'wrong-particles';
+                particle.style.position = 'fixed';
+                particle.style.left = centerX + (Math.random() - 0.5) * 200 + 'px';
+                particle.style.top = centerY + (Math.random() - 0.5) * 200 + 'px';
+                particle.style.animationDelay = (Math.random() * 0.3) + 's';
+
+                document.body.appendChild(particle);
+
+                setTimeout(() => {
+                    particle.remove();
+                }, 1000);
+            }
+        }
+
+        function showSimpleCorrectAnimation() {
+            const gameBoard = document.querySelector('.w-full');
+            gameBoard.classList.add('simple-correct');
+
+            // Add confetti effect
+            createConfetti();
+
+            // Add success sound effect simulation
+            createSuccessRipple();
+
+            // Add team celebration animation
+            const currentTeamElement = currentTeam === 'blue' ?
+                document.getElementById('blueTeam') :
+                document.getElementById('redTeam');
+            currentTeamElement.classList.add('bounce-in');
+
+            setTimeout(() => {
+                gameBoard.classList.remove('simple-correct');
+                currentTeamElement.classList.remove('bounce-in');
+            }, 600);
+        }
+
+        function showSimpleWrongAnimation() {
+            const gameBoard = document.querySelector('.w-full');
+            gameBoard.classList.add('simple-wrong');
+
+            // Add big X in center of screen
+            const wrongX = document.createElement('div');
+            wrongX.className = 'wrong-x';
+            wrongX.textContent = '❌';
+            document.body.appendChild(wrongX);
+
+            // Add screen shake
+            document.body.style.animation = 'shake 0.5s ease-in-out';
+
+            // Add wrong particles
+            createWrongBurst();
+
+            // Add team disappointment animation
+            const currentTeamElement = currentTeam === 'blue' ?
+                document.getElementById('blueTeam') :
+                document.getElementById('redTeam');
+            currentTeamElement.style.animation = 'disappointment 0.5s ease-out';
+
+            setTimeout(() => {
+                gameBoard.classList.remove('simple-wrong');
+                document.body.style.animation = '';
+                currentTeamElement.style.animation = '';
+                wrongX.remove();
+            }, 1000);
+        }
+
+        function createConfetti() {
+            const colors = ['#fbbf24', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444'];
+
+            for (let i = 0; i < 30; i++) {
+                const confetti = document.createElement('div');
+                confetti.style.position = 'fixed';
+                confetti.style.width = '8px';
+                confetti.style.height = '8px';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * window.innerWidth + 'px';
+                confetti.style.top = '-10px';
+                confetti.style.borderRadius = '50%';
+                confetti.style.pointerEvents = 'none';
+                confetti.style.zIndex = '1000';
+                confetti.style.animation = `confettiFall ${1 + Math.random() * 2}s ease-out forwards`;
+
+                document.body.appendChild(confetti);
+
+                setTimeout(() => {
+                    confetti.remove();
+                }, 3000);
+            }
+        }
+
+        function createSuccessRipple() {
+            const ripple = document.createElement('div');
+            ripple.style.position = 'fixed';
+            ripple.style.top = '50%';
+            ripple.style.left = '50%';
+            ripple.style.width = '20px';
+            ripple.style.height = '20px';
+            ripple.style.borderRadius = '50%';
+            ripple.style.border = '3px solid #10b981';
+            ripple.style.transform = 'translate(-50%, -50%)';
+            ripple.style.pointerEvents = 'none';
+            ripple.style.zIndex = '999';
+            ripple.style.animation = 'successRipple 0.8s ease-out forwards';
+
+            document.body.appendChild(ripple);
+
+            setTimeout(() => {
+                ripple.remove();
+            }, 800);
+        }
+
+        function createWrongBurst() {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+
+            for (let i = 0; i < 20; i++) {
+                const burst = document.createElement('div');
+                burst.style.position = 'fixed';
+                burst.style.width = '6px';
+                burst.style.height = '6px';
+                burst.style.backgroundColor = '#ef4444';
+                burst.style.borderRadius = '50%';
+                burst.style.left = centerX + 'px';
+                burst.style.top = centerY + 'px';
+                burst.style.pointerEvents = 'none';
+                burst.style.zIndex = '1000';
+
+                const angle = (i * 18) * Math.PI / 180;
+                const distance = 100 + Math.random() * 100;
+                burst.style.animation = `burstOut 0.6s ease-out forwards`;
+                burst.style.setProperty('--burst-x', Math.cos(angle) * distance + 'px');
+                burst.style.setProperty('--burst-y', Math.sin(angle) * distance + 'px');
+
+                document.body.appendChild(burst);
+
+                setTimeout(() => {
+                    burst.remove();
+                }, 600);
+            }
+        }
+
+        function createMagicalParticles(element) {
+            const rect = element.getBoundingClientRect();
+            const colors = ['#fbbf24', '#f59e0b', '#8b5cf6', '#3b82f6'];
+
+            for (let i = 0; i < 8; i++) {
+                const particle = document.createElement('div');
+                particle.style.position = 'fixed';
+                particle.style.width = '4px';
+                particle.style.height = '4px';
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.borderRadius = '50%';
+                particle.style.left = (rect.left + rect.width / 2) + 'px';
+                particle.style.top = (rect.top + rect.height / 2) + 'px';
+                particle.style.pointerEvents = 'none';
+                particle.style.zIndex = '1001';
+
+                const angle = (i * 45) * Math.PI / 180;
+                const distance = 30 + Math.random() * 20;
+                particle.style.animation = `magicalFloat 1s ease-out forwards`;
+                particle.style.setProperty('--magic-x', Math.cos(angle) * distance + 'px');
+                particle.style.setProperty('--magic-y', Math.sin(angle) * distance + 'px');
+                particle.style.animationDelay = (i * 0.1) + 's';
+
+                document.body.appendChild(particle);
+
+                setTimeout(() => {
+                    particle.remove();
+                }, 1500);
+            }
+        }
+
+        function createCorrectAnswerAnimation(answer) {
+            // Create success burst with stars
+            const burst = document.createElement('div');
+            burst.className = 'success-burst';
+            burst.style.left = '50%';
+            burst.style.top = '50%';
+            burst.style.transform = 'translate(-50%, -50%)';
+
+            // Create multiple stars
+            for (let i = 0; i < 12; i++) {
+                const star = document.createElement('div');
+                star.className = 'success-star';
+
+                const angle = (i * 30) * Math.PI / 180;
+                const distance = 80 + Math.random() * 40;
+                star.style.setProperty('--star-x', Math.cos(angle) * distance + 'px');
+                star.style.setProperty('--star-y', Math.sin(angle) * distance + 'px');
+                star.style.animationDelay = (i * 0.05) + 's';
+
+                burst.appendChild(star);
+            }
+
+            document.body.appendChild(burst);
+
+            setTimeout(() => {
+                burst.remove();
+            }, 1500);
+        }
+
+        function showEnhancedCorrectAnimation() {
+            // Create fireworks effect
+            createFireworks();
+
+            // Create enhanced confetti
+            createEnhancedConfetti();
+
+            // Add screen success flash
+            const flash = document.createElement('div');
+            flash.style.position = 'fixed';
+            flash.style.top = '0';
+            flash.style.left = '0';
+            flash.style.width = '100%';
+            flash.style.height = '100%';
+            flash.style.background = 'radial-gradient(circle, rgba(34, 197, 94, 0.2) 0%, transparent 70%)';
+            flash.style.pointerEvents = 'none';
+            flash.style.zIndex = '999';
+            flash.style.animation = 'fadeInSmooth 0.3s ease-out forwards';
+
+            document.body.appendChild(flash);
+
+            setTimeout(() => {
+                flash.style.animation = 'fadeInSmooth 0.3s ease-out reverse';
+                setTimeout(() => flash.remove(), 300);
+            }, 200);
+        }
+
+        function createFireworks() {
+            const positions = [
+                { x: '20%', y: '30%' },
+                { x: '80%', y: '25%' },
+                { x: '50%', y: '20%' }
+            ];
+
+            positions.forEach((pos, index) => {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'firework';
+                    firework.style.left = pos.x;
+                    firework.style.top = pos.y;
+
+                    const colors = ['#fbbf24', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'];
+
+                    for (let i = 0; i < 20; i++) {
+                        const particle = document.createElement('div');
+                        particle.className = 'firework-particle';
+                        particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
+                        const angle = (i * 18) * Math.PI / 180;
+                        const distance = 60 + Math.random() * 40;
+                        particle.style.setProperty('--fx', Math.cos(angle) * distance + 'px');
+                        particle.style.setProperty('--fy', Math.sin(angle) * distance + 'px');
+                        particle.style.animationDelay = (Math.random() * 0.2) + 's';
+
+                        firework.appendChild(particle);
+                    }
+
+                    document.body.appendChild(firework);
+
+                    setTimeout(() => {
+                        firework.remove();
+                    }, 1500);
+                }, index * 200);
+            });
+        }
+
+        function createEnhancedConfetti() {
+            const colors = ['#fbbf24', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444'];
+            const shapes = ['circle', 'square', 'triangle'];
+
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                const shape = shapes[Math.floor(Math.random() * shapes.length)];
+
+                confetti.style.position = 'fixed';
+                confetti.style.width = (4 + Math.random() * 8) + 'px';
+                confetti.style.height = confetti.style.width;
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.left = Math.random() * window.innerWidth + 'px';
+                confetti.style.top = '-20px';
+                confetti.style.pointerEvents = 'none';
+                confetti.style.zIndex = '1000';
+
+                if (shape === 'circle') {
+                    confetti.style.borderRadius = '50%';
+                } else if (shape === 'triangle') {
+                    confetti.style.clipPath = 'polygon(50% 0%, 0% 100%, 100% 100%)';
+                }
+
+                confetti.style.animation = `confettiFall ${2 + Math.random() * 3}s ease-out forwards`;
+                confetti.style.animationDelay = (Math.random() * 0.5) + 's';
+
+                document.body.appendChild(confetti);
+
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+        }
+
+        // One-Time Code Verification using Firestore
+        async function verifyCode() {
+            const code = document.getElementById("accessCode").value.trim();
+            const error = document.getElementById("error");
+
+            if (!code) {
+                error.innerText = "Please enter a code";
+                return;
+            }
+
+            try {
+                const ref = db.collection("codes").doc(code);
+                const snap = await ref.get();
+
+                if (!snap.exists) {
+                    error.innerText = "Invalid code";
+                    return;
+                }
+
+                if (snap.data().used) {
+                    error.innerText = "Code already used";
+                    return;
+                }
+
+                await ref.update({
+                    used: true,
+                    usedAt: new Date()
+                });
+
+                document.getElementById("codeScreen").style.display = "none";
+                document.getElementById("game").style.display = "block";
+                initializeGame(); // Canva game start
+            } catch (err) {
+                error.innerText = "Error verifying code. Please try again.";
+                console.error("Firestore error:", err);
+            }
+        }
+
+        // Allow Enter key to submit code
+        document.addEventListener('DOMContentLoaded', function() {
+            const accessCodeInput = document.getElementById('accessCode');
+            if (accessCodeInput) {
+                accessCodeInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        verifyCode();
+                    }
+                });
+                accessCodeInput.focus();
+            }
+        });
+
+        // Don't initialize the game automatically - wait for code verification
+        // initializeGame();
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9c28f116d729ed67',t:'MTc2OTE4ODYxNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
